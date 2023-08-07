@@ -1,32 +1,29 @@
-// import { useState } from "react";
-import Image from "next/image";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DayState from "./Components/DayState";
 import Link from "next/link";
-export default function Home() {
-  // const [dayResult, setDayResult] = useState();
-  const habits = {
-    "Dormir cedo": {
-      "2023-08-03": true,
-      "2023-08-02": true,
-      "2023-08-01": true,
-    },
-    Alongar: {
-      "2023-08-03": true,
-      "2023-08-02": true,
-      "2023-08-01": true,
-    },
-  };
+import { kv } from "@vercel/kv";
+import DeleteButton from "./Components/DeleteButton";
+
+//caso o habito exista, o conjunto será uma chave string e um valor booleano
+export type Habits = {
+  [habit: string]: Record<string, boolean>;
+} | null;
+
+export default async function Home() {
+  const habits: Habits = await kv.hgetall("habits");
   const weekDays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
   const todayWeekDay = new Date().getDay();
-  console.log(todayWeekDay)
   const sortedWeekDays = weekDays
     .slice(todayWeekDay + 1)
     .concat(weekDays.slice(0, todayWeekDay + 1));
-  const handleHabit = () => {
-    console.log("alteração de estado");
-    // dayResult === true ? setDayResult(!dayResult) : setDayResult(true);
-  };
+
+  const lastSevenDays = weekDays
+    .map((_, index) => {
+      const date = new Date();
+      date.setDate(date.getDate() - index);
+      return date.toISOString().slice(0, 10);
+    })
+    .reverse();
+
   return (
     <main className="container relative flex flex-col gap-8 px-4 pt-16">
       {habits === null ||
@@ -43,23 +40,27 @@ export default function Home() {
                 {habit}
                 {/* - {JSON.stringify(habitStreak)} */}
               </span>
-              <button>
-                <DeleteOutlineIcon fontSize="small" color="error" />
-              </button>
+              {/* @ts-ignore */}
+              <DeleteButton habit={habit} />
             </div>
-            <section className="grid grid-cols-7 bg-neutral-800 rounded-md p-2">
-              {sortedWeekDays.map((day) => (
-                <button
-                  // onClick={handleHabit}
-                  key={day}>
-                  <span className="font-sans text-xs text-white">{day}</span>
-                  <DayState day={false} />
-                </button>
-              ))}
-            </section>
+            <Link href={`/${habit}`}>
+              <section className="grid grid-cols-7 bg-neutral-800 rounded-md p-2">
+                {sortedWeekDays.map((day, index) => (
+                  <button key={day}>
+                    <span className="font-sans text-xs text-white">{day}</span>
+                    <DayState day={habitStreak[lastSevenDays[index]]} />
+                  </button>
+                ))}
+              </section>
+            </Link>
           </div>
         ))}
-      <Link href={`new-habit`} className="fixed text-center bottom-10 w-1/2 left-1/2 -translate-x-1/2 text-neutral-200 bg-green-600 font-display font-regular text-2xl p-2 rounded-md">Novo Hábito</Link>
+      <Link
+        href={`new-habit`}
+        className="fixed text-center bottom-10 w-1/2 left-1/2 -translate-x-1/2 text-neutral-200 bg-green-600 font-display font-regular text-2xl p-2 rounded-md"
+      >
+        Novo Hábito
+      </Link>
     </main>
   );
 }

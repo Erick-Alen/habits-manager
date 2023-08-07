@@ -1,11 +1,19 @@
+import { kv } from "@vercel/kv"
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+
 import Link from "next/link";
 import React from "react";
 
 export default function newHabit() {
   async function newHabit(formData: FormData) {
-    "use server";
+    "use server"
     const habit = formData.get("habit")
-    console.log(habit)
+    await kv.hset("habits", { [habit as string]: {} })
+    //TODO: revalidate path não está funcionando como deveria
+    revalidatePath("/")
+    redirect("/")
+    // console.log(habit)
   }
   return (
     <main className="container relative flex flex-col gap-8 px-12 pt-16">
